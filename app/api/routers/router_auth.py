@@ -8,11 +8,23 @@ from app.core.security import decode_access_token
 from app.core.config import settings
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
-import httpx
+from authlib.integrations.httpx_client import AsyncOAuth2Client
 import secrets
 
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+
+def get_auth_service(db: AsyncSession = Depends(get_db)):
+    return AuthService(db)
+
+
+# Настройка OAuth2 клиента для Google
+oauth_client = AsyncOAuth2Client(
+    client_id=settings.OAUTH_GOOGLE_CLIENT_ID,
+    client_secret=settings.OAUTH_GOOGLE_CLIENT_SECRET,
+    redirect_uri="http://localhost:8000/auth/google/callback"
+)
 
 
 def get_auth_service(db: AsyncSession = Depends(get_db)):
@@ -75,23 +87,16 @@ async def get_me(
     user = await auth_service.get_current_user(token)
     return user
 
-# Google OAuth routes
+# Google OAuth routes with Authlib
 @router.get("/google/login")
 async def google_login():
-    # Генерируем state для защиты от CSRF
-    state = secrets.token_urlsafe(32)
-    
-    # URL для авторизации Google
-    google_auth_url = (
-        "https://accounts.google.com/o/oauth2/auth?"
-        f"client_id={settings.OAUTH_GOOGLE_CLIENT_ID}&"
-        "response_type=code&"
-        "scope=openid email profile&"
-        f"redirect_uri=http://localhost:8000/auth/google/callback&"
-        f"state={state}"
+    # Создаем authorization URL с Authlib
+    authorization_url, state = oauth_client.create_authorization_url(
+        'https://accounts.google.com/o/oauth2/auth',
+        scope=['openid', 'email', 'profile']
     )
     
-    return {"auth_url": google_auth_url, "state": state}
+    return {"auth_url": authorization_url, "state": state}
 
 @router.get("/google/callback")
 async def google_callback(
@@ -100,7 +105,7 @@ async def google_callback(
     db: AsyncSession = Depends(get_db),
     auth_service: AuthService = Depends(get_auth_service)
 ):
-    # Обмениваем код на токен
+    # Обмениваем код на токен с Authlib
     token_url = "https://oauth2.googleapis.com/token"
     token_data = {
         "client_id": settings.OAUTH_GOOGLE_CLIENT_ID,
@@ -110,7 +115,8 @@ async def google_callback(
         "redirect_uri": "http://localhost:8000/auth/google/callback"
     }
     
-    async with httpx.AsyncClient() as client:
+    # Используем Authlib клиент для получения токена
+    async with oauth_client as client:
         token_response = await client.post(token_url, data=token_data)
         token_json = token_response.json()
         
