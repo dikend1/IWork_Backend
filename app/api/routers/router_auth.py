@@ -75,15 +75,6 @@ async def get_me(
     user = await auth_service.get_current_user(token)
     return user
 
-# Альтернативный вариант с токеном в теле запроса
-@router.post("/me", response_model=UserResponseSchema)
-async def get_me_post(
-    token: str,
-    auth_service: AuthService = Depends(get_auth_service)
-):
-    user = await auth_service.get_current_user(token)
-    return user
-
 # Google OAuth routes
 @router.get("/google/login")
 async def google_login():
