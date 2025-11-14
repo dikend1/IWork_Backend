@@ -2,6 +2,13 @@ from sqlalchemy import Column, Integer, String,Boolean,DateTime
 from app.db.base import Base
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from enum import Enum
+
+
+class UserRole(str, Enum):
+    USER = "user"
+    MODERATOR = "moderator"
+    ADMIN = "admin"
 
 
 class UserModel(Base):
@@ -16,5 +23,6 @@ class UserModel(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
     google_id = Column(String, unique=True, nullable=True)  # Для OAuth Google
 
+    role = Column(String, default=UserRole.USER.value, nullable=False)
     # reviews = relationship("ReviewModel", back_populates="user")
     # salaries = relationship("SalaryModel", back_populates="user")
