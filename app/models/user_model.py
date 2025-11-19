@@ -24,5 +24,5 @@ class UserModel(Base):
     google_id = Column(String, unique=True, nullable=True)  # Для OAuth Google
 
     role = Column(String, default=UserRole.USER.value, nullable=False)
-    # reviews = relationship("ReviewModel", back_populates="user")
-    # salaries = relationship("SalaryModel", back_populates="user")
+    reviews = relationship("ReviewModel", back_populates="user")
+    salaries = relationship("SalaryModel", back_populates="user")
