@@ -32,7 +32,7 @@ class CompanyService:
     async def delete_company(self,company_id:int)->bool:
         company = await self.get_company(company_id)
         if not company:
-            return None
+            return False
         await self.db.delete(company)
         await self.db.commit()
         return True
